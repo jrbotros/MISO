@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import glob
+import json
 import shelve
 
 from collections import defaultdict
@@ -29,7 +30,8 @@ def compress_event_name(event_name,
 def serialize_genes(gff_genes,
                     gff_filename,
                     output_dir,
-                    compress_id=False):
+                    compress_id=False,
+                    use_json=False):
     """
     Output genes into pickle files by chromosome, by gene.
 
@@ -101,21 +103,34 @@ def serialize_genes(gff_genes,
         t2 = time.time()
         print "  - Chromosome serialization took %.2f seconds" %(t2 - t1)
 
-    # Shelve the mapping from gene ids to filenames
-    shelved_filename = os.path.join(output_dir,
-                                    "genes_to_filenames.shelve")
-    shelved_data = shelve.open(shelved_filename)
-    for k, v in gene_id_to_filename.iteritems():
-        shelved_data[k] = v
-    shelved_data.close()
+    if (use_json):
+        # Output the mapping from gene ids to filenames
+        json_filename = os.path.join(output_dir,
+                                     "genes_to_filenames.json")
+        with open(json_filename, "w") as json_out:
+            json.dump(gene_id_to_filename, json_out)
 
-    # Shelve the mapping from compressed gene ids to gene ids
-    shelved_filename = os.path.join(output_dir,
-                                    "compressed_ids_to_genes.shelve")
-    shelved_data = shelve.open(shelved_filename)
-    for k, v in compressed_id_to_gene_id.iteritems():
-        shelved_data[k] = v
-    shelved_data.close()
+        # Output the mapping from compressed gene ids to gene ids
+        json_filename = os.path.join(output_dir,
+                                     "compressed_ids_to_genes.json")
+        with open(json_filename, "w") as json_out:
+            json.dump(compressed_id_to_gene_id, json_out)
+    else:
+        # Shelve the mapping from gene ids to filenames
+        shelved_filename = os.path.join(output_dir,
+                                        "genes_to_filenames.shelve")
+        shelved_data = shelve.open(shelved_filename)
+        for k, v in gene_id_to_filename.iteritems():
+            shelved_data[k] = v
+        shelved_data.close()
+
+        # Shelve the mapping from compressed gene ids to gene ids
+        shelved_filename = os.path.join(output_dir,
+                                        "compressed_ids_to_genes.shelve")
+        shelved_data = shelve.open(shelved_filename)
+        for k, v in compressed_id_to_gene_id.iteritems():
+            shelved_data[k] = v
+        shelved_data.close()
 
     # Output a list of genes in ordinary GFF format
     genes_filename = os.path.join(output_dir, "genes.gff")
@@ -131,7 +146,7 @@ def serialize_genes(gff_genes,
     
         
 def index_gff(gff_filename, output_dir,
-              compress_id=False):
+              compress_id=False, use_json=False):
     """
     Index the given GFF and placed the indexed representation
     in the output directory.
@@ -158,7 +173,8 @@ def index_gff(gff_filename, output_dir,
     serialize_genes(gff_genes,
                     gff_filename,
                     output_dir,
-                    compress_id=compress_id)
+                    compress_id=compress_id,
+                    use_json=use_json)
     t2 = time.time()
     print "  - Serialization of genes from GFF took %.2f seconds" %(t2 - t1)
     overall_t2 = time.time()
@@ -171,6 +187,8 @@ def main():
     parser.add_option("--index", dest="index_gff", nargs=2, default=None,
                       help="Index the given GFF. Takes as arguments as GFF filename "
                       "and an output directory.")
+    parser.add_option("--json", dest="use_json", action="store_true", default=False,
+                      help="Use JSON instead of shelve to store gene metadata.")
     parser.add_option("--compress-id", dest="compress_id", default=False,
                       action="store_true",
                       help="Use the compressed version of the GFF \'ID=\' "
@@ -188,7 +206,8 @@ def main():
             os.makedirs(output_dir)
 
         index_gff(gff_filename, output_dir,
-                  compress_id=options.compress_id)
+                  compress_id=options.compress_id,
+                  use_json=options.use_json)
     else:
         print "Indexer of GFF files for use with MISO."
         print "Need to pass --index, for example:\n"
