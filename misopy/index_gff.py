@@ -25,11 +25,12 @@ def compress_event_name(event_name,
     compressed_event_name = "%s_%s" %(prefix, event_hash)
     return compressed_event_name
 
-    
+
 def serialize_genes(gff_genes,
                     gff_filename,
                     output_dir,
-                    compress_id=False):
+                    compress_id=False,
+                    rel_paths=False):
     """
     Output genes into pickle files by chromosome, by gene.
 
@@ -37,7 +38,7 @@ def serialize_genes(gff_genes,
     """
     genes_by_chrom = defaultdict(dict)
 
-    # Split up genes by chromosome 
+    # Split up genes by chromosome
     for gene_id, gene_info in gff_genes.iteritems():
         gene_obj = gene_info["gene_object"]
         gene_hierarchy = gene_info["hierarchy"]
@@ -54,7 +55,7 @@ def serialize_genes(gff_genes,
     gene_id_to_filename = {}
     # Mapping from compressed IDs (hashes) to gene IDs
     compressed_id_to_gene_id = {}
-                                                   
+
     # Serialize all the genes in each chromosome into their
     # own directory
     for chrom, chrom_genes in genes_by_chrom.iteritems():
@@ -74,20 +75,23 @@ def serialize_genes(gff_genes,
         t1 = time.time()
         # Serialize each gene into a separate file
         num_genes = len(genes_by_chrom[chrom])
-        
+
         for gene_id, gene_info in genes_by_chrom[chrom].iteritems():
             gene_compressed_id = None
             if compress_id:
                 gene_compressed_id = \
                     genes_by_chrom[chrom][gene_id]['compressed_id']
                 gene_filename = \
-                    os.path.abspath(os.path.join(chrom_dir,
-                                                 "%s.pickle" \
-                                                 %(gene_compressed_id)))
+                    os.path.join(chrom_dir,
+                                 "%s.pickle" \
+                                 %(gene_compressed_id))
             else:
                 gene_filename = \
-                    os.path.abspath(os.path.join(chrom_dir,
-                                                 "%s.pickle" %(gene_id)))
+                    os.path.join(chrom_dir,
+                                 "%s.pickle" %(gene_id))
+            if not rel_paths:
+                gene_filename = os.path.abspath(gene_filename)
+
             # Write each gene/event's pickle file
             pickle_utils.write_pickled_file({gene_id:
                                              genes_by_chrom[chrom][gene_id]},
@@ -97,7 +101,7 @@ def serialize_genes(gff_genes,
             # Record compressed ID (hash) to gene ID
             if gene_compressed_id is not None:
                 compressed_id_to_gene_id[gene_compressed_id] = gene_id
- 
+
         t2 = time.time()
         print "  - Chromosome serialization took %.2f seconds" %(t2 - t1)
 
@@ -128,10 +132,10 @@ def serialize_genes(gff_genes,
                 record_type = line.strip().split("\t")[2]
                 if record_type == "gene":
                     gff_out.write(line)
-    
-        
+
+
 def index_gff(gff_filename, output_dir,
-              compress_id=False):
+              compress_id=False, rel_paths=False):
     """
     Index the given GFF and placed the indexed representation
     in the output directory.
@@ -145,7 +149,7 @@ def index_gff(gff_filename, output_dir,
         print "%s appears to already be indexed. Aborting." \
             %(gff_filename)
         return
-    
+
     print "  - GFF: %s" %(gff_filename)
     print "  - Outputting to: %s" %(output_dir)
     overall_t1 = time.time()
@@ -158,19 +162,22 @@ def index_gff(gff_filename, output_dir,
     serialize_genes(gff_genes,
                     gff_filename,
                     output_dir,
-                    compress_id=compress_id)
+                    compress_id=compress_id,
+                    rel_paths=rel_paths)
     t2 = time.time()
     print "  - Serialization of genes from GFF took %.2f seconds" %(t2 - t1)
     overall_t2 = time.time()
     print "Indexing of GFF took %.2f seconds." %(overall_t2 - overall_t1)
 
-    
+
 def main():
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("--index", dest="index_gff", nargs=2, default=None,
                       help="Index the given GFF. Takes as arguments as GFF filename "
                       "and an output directory.")
+    parser.add_option("--rel_paths", dest="rel_paths", action="store_true", default=False,
+                      help="Use relative instead of absolute paths for files.")
     parser.add_option("--compress-id", dest="compress_id", default=False,
                       action="store_true",
                       help="Use the compressed version of the GFF \'ID=\' "
@@ -180,15 +187,19 @@ def main():
 
     if options.index_gff != None:
         gff_filename = \
-            os.path.abspath(os.path.expanduser(options.index_gff[0]))
+            os.path.expanduser(options.index_gff[0])
         output_dir = \
-            os.path.abspath(os.path.expanduser(options.index_gff[1]))
+            os.path.expanduser(options.index_gff[1])
+        if not options.rel_paths:
+            gff_filename = os.path.abspath(gff_filename)
+            output_dir = os.path.abspath(output_dir)
 
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
         index_gff(gff_filename, output_dir,
-                  compress_id=options.compress_id)
+                  compress_id=options.compress_id,
+                  rel_paths=options.rel_paths)
     else:
         print "Indexer of GFF files for use with MISO."
         print "Need to pass --index, for example:\n"
