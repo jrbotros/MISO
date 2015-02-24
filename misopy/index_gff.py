@@ -31,7 +31,8 @@ def serialize_genes(gff_genes,
                     gff_filename,
                     output_dir,
                     compress_id=False,
-                    use_json=False):
+                    use_json=False,
+                    rel_paths=False):
     """
     Output genes into pickle files by chromosome, by gene.
 
@@ -83,13 +84,16 @@ def serialize_genes(gff_genes,
                 gene_compressed_id = \
                     genes_by_chrom[chrom][gene_id]['compressed_id']
                 gene_filename = \
-                    os.path.abspath(os.path.join(chrom_dir,
-                                                 "%s.pickle" \
-                                                 %(gene_compressed_id)))
+                    os.path.join(chrom_dir,
+                                 "%s.pickle" \
+                                 %(gene_compressed_id))
             else:
                 gene_filename = \
-                    os.path.abspath(os.path.join(chrom_dir,
-                                                 "%s.pickle" %(gene_id)))
+                    os.path.join(chrom_dir,
+                                 "%s.pickle" %(gene_id))
+            if not rel_paths:
+                gene_filename = os.path.abspath(gene_filename)
+
             # Write each gene/event's pickle file
             pickle_utils.write_pickled_file({gene_id:
                                              genes_by_chrom[chrom][gene_id]},
@@ -146,7 +150,7 @@ def serialize_genes(gff_genes,
     
         
 def index_gff(gff_filename, output_dir,
-              compress_id=False, use_json=False):
+              compress_id=False, use_json=False, rel_paths=False):
     """
     Index the given GFF and placed the indexed representation
     in the output directory.
@@ -174,7 +178,8 @@ def index_gff(gff_filename, output_dir,
                     gff_filename,
                     output_dir,
                     compress_id=compress_id,
-                    use_json=use_json)
+                    use_json=use_json,
+                    rel_paths=rel_paths)
     t2 = time.time()
     print "  - Serialization of genes from GFF took %.2f seconds" %(t2 - t1)
     overall_t2 = time.time()
@@ -189,6 +194,8 @@ def main():
                       "and an output directory.")
     parser.add_option("--json", dest="use_json", action="store_true", default=False,
                       help="Use JSON instead of shelve to store gene metadata.")
+    parser.add_option("--rel_paths", dest="rel_paths", action="store_true", default=False,
+                      help="Use relative instead of absolute paths for files.")
     parser.add_option("--compress-id", dest="compress_id", default=False,
                       action="store_true",
                       help="Use the compressed version of the GFF \'ID=\' "
@@ -198,16 +205,20 @@ def main():
 
     if options.index_gff != None:
         gff_filename = \
-            os.path.abspath(os.path.expanduser(options.index_gff[0]))
+            os.path.expanduser(options.index_gff[0])
         output_dir = \
-            os.path.abspath(os.path.expanduser(options.index_gff[1]))
+            os.path.expanduser(options.index_gff[1])
+        if not options.rel_paths:
+            gff_filename = os.path.abspath(gff_filename)
+            output_dir = os.path.abspath(output_dir)
 
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
         index_gff(gff_filename, output_dir,
                   compress_id=options.compress_id,
-                  use_json=options.use_json)
+                  use_json=options.use_json,
+                  rel_paths=options.rel_paths)
     else:
         print "Indexer of GFF files for use with MISO."
         print "Need to pass --index, for example:\n"
