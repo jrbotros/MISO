@@ -99,6 +99,10 @@ def serialize_genes(gff_genes,
                                              genes_by_chrom[chrom][gene_id]},
                                             gene_filename)
             # Record what filename was associated with this gene ID
+            if rel_paths:
+                gene_filename = \
+                    os.path.join(chrom_dir_name,
+                                 "%s.pickle" %(gene_id))
             gene_id_to_filename[gene_id] = gene_filename
             # Record compressed ID (hash) to gene ID
             if gene_compressed_id is not None:
