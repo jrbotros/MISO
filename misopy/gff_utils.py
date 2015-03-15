@@ -27,6 +27,7 @@
 # 2.5       ???
 # 3         http://song.sourceforge.net/gff3.shtml
 
+import json
 import os
 import sys
 import re
@@ -69,18 +70,22 @@ def load_indexed_gff_chrom(indexed_gff_chrom_filename):
 
 
 def load_shelved_genes_to_fnames(indexed_gff_dir,
-                                 shelve_basename="genes_to_filenames.shelve"):
+                                 shelve_basename="genes_to_filenames.shelve",
+                                 json_basename="genes_to_filenames.json"):
     """
     Load mapping from gene IDs to their indexed
     filenames from the 'genes_to_filenames.shelve' file
     if it exists. Return None if it does not exist.
     """
     shelve_fname = os.path.join(indexed_gff_dir, shelve_basename)
+    json_fname = os.path.join(indexed_gff_dir, json_basename)
     print "Searching for %s.." %(shelve_fname)
     gene_ids_to_gff_index = None    
     if os.path.isfile(shelve_fname):
         print "  - Found shelved file."
         gene_ids_to_gff_index = shelve.open(shelve_fname)
+    elif os.path.isfile(json_fname):
+        gene_ids_to_gff_index = json.load(json_fname)
     else:
         print "  - File not found."
     return gene_ids_to_gff_index
