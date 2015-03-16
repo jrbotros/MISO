@@ -85,7 +85,7 @@ def load_shelved_genes_to_fnames(indexed_gff_dir,
         print "  - Found shelved file."
         gene_ids_to_gff_index = shelve.open(shelve_fname)
     elif os.path.isfile(json_fname):
-        gene_ids_to_gff_index = json.load(json_fname)
+        gene_ids_to_gff_index = json.load(open(json_fname))
     else:
         print "  - File not found."
     return gene_ids_to_gff_index
