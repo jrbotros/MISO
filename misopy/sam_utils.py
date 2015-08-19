@@ -16,16 +16,6 @@ import ctypes
 from numpy import array
 from scipy import *
 
-# def read_to_isoforms(alignment, gene):
-#     """
-#     Align SAM read to gene's isoforms.
-#     """
-#     ##
-#     ## SAM format is zero-based, but GFF are 1-based, so add 1
-#     ## to read position
-#     ##
-#     pass
-
 def cigar_to_end_coord(start, cigar):
     """
     Compute the end coordinate based on the CIGAR string.
@@ -196,9 +186,9 @@ def flag_to_strand(flag):
     Takes integer flag as argument.
     Returns strand ('+' or '-') from flag.
     """
-    if flag == 0 or not (int(bin(flag)[-5]) & 1):
-        return "+"
-    return "-"
+    if flag & 16:
+        return "-"
+    return "+"
 
 
 def strip_mate_id(read_name):
@@ -217,8 +207,10 @@ def strip_mate_id(read_name):
     return read_name
 
     
-def pair_sam_reads(samfile, filter_reads=True,
-                   return_unpaired=False):
+def pair_sam_reads(samfile,
+                   filter_reads=True,
+                   return_unpaired=False,
+                   strand_rule=None):
     """
     Pair reads from a SAM file together.
     """
@@ -238,9 +230,23 @@ def pair_sam_reads(samfile, filter_reads=True,
                 unpaired_reads[curr_name] = read
                 continue
         paired_reads[curr_name].append(read)
-
+        # Ensure that the reads that were paired are
+        # in the right order - i.e., that read1 is
+        # first and read2 follows.
+        if len(paired_reads[curr_name]) == 2:
+            if strand_rule == "fr-firststrand":
+                # Thanks to Renee Sears:
+                # For fr-firststrand the /1 read should only be left of the
+                # right if it is on the '+' strand whereas the /2 read
+                # should be to the left if it is on the '+' strand
+                if paired_reads[curr_name][0].is_read1 and \
+                   paired_reads[curr_name][0].is_reverse:
+                    paired_reads[curr_name] = paired_reads[curr_name][::-1]
+                if paired_reads[curr_name][0].is_read2 and \
+                    paired_reads[curr_name][0].is_reverse:
+                    paired_reads[curr_name] = paired_reads[curr_name][::-1]
+                    
     to_delete = []
-
     num_unpaired = 0
     num_total = 0
 
@@ -317,29 +323,27 @@ def read_matches_strand(read,
     """
     if strand_rule == "fr-unstranded":
         return True
+    if strand_rule == "fr-secondstrand":
+        raise Exception, "fr-secondstrand currently unsupported."
     matches = False
     if paired_end is not None:
-        # Paired-end reads
+        ## Paired-end reads
         read1, read2 = read
         if strand_rule == "fr-firststrand":
-            # fr-firststrand: means that the *second* of the mates
-            # must match the strand
-            matches = (flag_to_strand(read2.flag) == target_strand)
-        elif strand_rule == "fr-secondstrand":
-            # fr-secondstrand: means that the *first* of the mates
-            # must match the strand
-            matches = (flag_to_strand(read1.flag) == target_strand)
+            # fr-firststrand: means that the *first* of the mates
+            # must match the strand. Superfluous in light of
+            # switching in pair_sam_reads()
+            if target_strand == "+":
+                return (flag_to_strand(read1.flag) == "+")
+            elif target_strand == "-":
+                return (flag_to_strand(read2.flag) == "-")
         else:
             raise Exception, "Unknown strandedness rule."
     else:
-        # Single-end reads
+        ## Single-end reads
         if strand_rule == "fr-firststrand":
             # fr-firststrand: We sequence the first read only, so it must
-            # *NOT* match the target strand
-            matches = (flag_to_strand(read.flag) != target_strand)
-        elif strand_rule == "fr-secondstrand":
-            # fr-secondstrand: We only sequence the first read, which 
-            # is supposed to match the target strand
+            # match the target strand
             matches = (flag_to_strand(read.flag) == target_strand)
         else:
             raise Exception, "Unknown strandedness rule."
@@ -389,7 +393,8 @@ def sam_parse_reads(samfile,
     num_strand_discarded = 0
     if paired_end:
         # Pair up the reads 
-        paired_reads = pair_sam_reads(samfile)
+        paired_reads = pair_sam_reads(samfile,
+                                      strand_rule=strand_rule)
         # Process reads into format required by fastmiso
         # MISO C engine requires pairs to follow each other in order.
         # Unpaired reads are not supported.

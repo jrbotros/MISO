@@ -91,7 +91,8 @@ MISO is available as a Python package, listed as ``misopy`` in `pypi`_ (Python P
 
 **Stable releases:**
 
-* MISO version 0.5.2 (`misopy-0.5.2.tar.gz`_), March 11, 2014 release (**Most recent**)
+* MISO version 0.5.3 (`misopy-0.5.3.tar.gz`_), March 10, 2015 release (**Most recent**)
+* MISO version 0.5.2 (`misopy-0.5.2.tar.gz`_), March 11, 2014 release 
 * MISO version 0.5.1 (`misopy-0.5.1.tar.gz`_), February 23, 2014 release 
 * MISO version 0.5.0 (`misopy-0.5.0.tar.gz`_), February 21, 2014 release 
 * MISO version 0.4.9 (`misopy-0.4.9.tar.gz`_), April 26, 2013 release 
@@ -125,6 +126,8 @@ MISO is available as a Python package, listed as ``misopy`` in `pypi`_ (Python P
 .. _misopy-0.5.0.tar.gz: http://pypi.python.org/packages/source/m/misopy/misopy-0.5.0.tar.gz
 .. _misopy-0.5.1.tar.gz: http://pypi.python.org/packages/source/m/misopy/misopy-0.5.1.tar.gz
 .. _misopy-0.5.2.tar.gz: http://pypi.python.org/packages/source/m/misopy/misopy-0.5.2.tar.gz
+.. _misopy-0.5.3.tar.gz: http://pypi.python.org/packages/source/m/misopy/misopy-0.5.3.tar.gz
+
 
 
 Latest version from GitHub
@@ -281,12 +284,12 @@ You should be able to import both of these packages without errors from the Pyth
 Testing MISO
 ------------
 
-To test that MISO can be run properly, run ``test_miso`` as shown
+To test that MISO can be run properly, run the unit tests as shown
 below. These tests ensure that MISO can be run on a few
 genes/exons. The output of these tests can be ignored and the
 abbreviated version should be along the following lines: ::
 
- $ test_miso
+ $ python -m unittest discover misopy
  Testing conversion of SAM to BAM...
  ...output omitted...
  Computing Psi for 1 genes...
@@ -1083,6 +1086,10 @@ MISO comes with a built-in utility, `sashimi_plot`_, for visualizing its output 
 Updates
 ========
 
+**2015**
+
+* **Tue, March 10**: Released ``0.5.3``, which fixes a bug in processing stranded reads. Thanks to Renee Sears. MISO license updated: it is licensed under GPL 2, not BSD, since it depends on GPL 2 code. We apologize for the confusion. Added support for Travis CI.
+
 **2014**
 
 * **Tue, Mar 11**: Released ``0.5.2``, which fixes an error reporting bug. Thanks to John Tobias and Sabine Dietmann.
@@ -1260,7 +1267,7 @@ If ``samtools`` cannot access the reads in that region, MISO will not be able to
 
 .. _answer20:
 
-20. **What is the license for MISO?** As of July 2014, MISO is now the <a href="http://en.wikipedia.org/wiki/BSD_licenses">MIT/BSD license</a>. 
+20. **What is the license for MISO?** MISO is licensed under the GPL v2 license (updated March, 2015).
 
 .. .. _sec:
 
@@ -1462,6 +1469,7 @@ for suggesting many improvements, or for creating useful software used by MISO:
 * Maayan Kreitzman (BCGSC)
 * John Tobias (UPenn)
 * Sabine Dietmann (MRC, University of Cambridge)
+* Renee Sears (Washington University in St. Louis)
 
 Authors
 =======
